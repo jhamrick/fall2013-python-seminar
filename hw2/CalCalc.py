@@ -128,6 +128,66 @@ def calculate(string, return_float=False):
     return answer
 
 
+######################################################################
+
+def test_1():
+    answer = calculate("2+2")
+    assert answer == 4
+
+
+def test_2():
+    answer = calculate("mass of the moon in kg")
+    assert answer == '7.3459x10^22 kg  (kilograms)'
+
+
+def test_3():
+    answer = calculate("mass of the moon in kg", return_float=True)
+    assert answer == 7.3459e22
+
+
+def test_4():
+    try:
+        calculate("__import__")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("'__import__' did not raise an error")
+
+
+def test_5():
+    try:
+        calculate("eval('2+2')")
+    except NameError:
+        pass
+    else:
+        raise AssertionError("'eval' did not raise an error")
+
+
+def test_6():
+    answer = calculate("mass of a proton in g")
+    assert answer == "1.672622x10^-24 grams"
+
+
+def test_7():
+    answer = calculate("mass of a proton in g", return_float=True)
+    assert answer == 1.672622e-24
+
+
+def test_8():
+    answer = calculate("three minus five", return_float=True)
+    assert answer == -2
+
+
+def test_9():
+    assert calculate("2**2") == 4
+
+
+def test_10():
+    assert calculate("4 / 2.") == 2
+
+
+######################################################################
+
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
