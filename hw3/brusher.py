@@ -3,6 +3,7 @@ import sys
 import matplotlib.patches as mpatches
 import numpy as np
 
+
 class Brusher(object):
 
     def __init__(self, data, colors):
@@ -107,8 +108,9 @@ class Brusher(object):
     def press(self, event):
         """Handle a matplotlib mouse button press event."""
 
-        # if there's already a selection, don't do anything
-        if self.xy0:
+        # if there's already a selection, or the click was outside a
+        # subplot, don't do anything
+        if self.xy0 or (event.inaxes is None):
             return
 
         # save the global mouse location, the axis coordinates, and
@@ -126,8 +128,11 @@ class Brusher(object):
     def release(self, event):
         """Handle a matplotlib mouse button release event."""
 
-        # if there's already a selection, don't do anything
-        if self.xy1:
+        # if there's already a selection, or there's not already a
+        # selection (which can happen if the mouse was pressed outside
+        # a subplot), or the release was outside a subplot, don't do
+        # anything
+        if self.xy1 or (self.xy0 is None) or (event.inaxes is None):
             return
 
         # save the global mojse location and axis coordinates
@@ -167,6 +172,10 @@ class Brusher(object):
         if event.key != "d":
             return
 
+        # if there's no selection, don't do anything
+        if (self.loc0 is None) or (self.loc1 is None):
+            return
+
         # determine if the mouse was inside the selection
         xy = np.array([self.loc0, self.loc1]).T
         xmin = xy[0].min()
@@ -183,6 +192,7 @@ class Brusher(object):
         # if it was in the selection, then reset it
         if inregion:
             self.reset()
+            self.flush()
 
     def pick_points(self):
         """Choose the points that are in the selection and update their
