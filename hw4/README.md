@@ -12,11 +12,12 @@ Email: `jhamrick@berkeley.edu`
 * `hw4.ipynb` -- IPython notebook for training the classifier and
   analyzing its performance
 * `util.py` -- Miscellaneous helper functions
+* `verify.sh` -- helper script to run `image_classification.py`
 
 ### Data
 
 * `image_categories.npy` -- NumPy array of possible categories
-* `image_classifier.pkl` -- pickled sklearn.ensemble.RandomForestClassifier
+* `image_dataset.npy` -- NumPy array of features for training data
 
 ## Training
 
@@ -40,7 +41,12 @@ by calling `np.load`).
 The features that are computed are:
 	* mean of each of the R/G/B channels
 	* covariance between the R/G/B channels
-	* HOG (histogram of oriented gradients)
+	* summary statistics of image entropy (sum, mean, variance)
+
+I also tried playing around with HOG (histogram of oriented gradients)
+features, but this produced too many features and the classifier was
+badly overfitting -- I think they are probably better for larger
+datasets.
 
 ### Training the classifier
 
@@ -49,32 +55,35 @@ The actual training (and analysis) of the classifier takes place in
 classifier on it, and displays a confusion matrix. Additionally, it
 performs some cross-validation to provide an accuracy estimate.
 
-The RF classifier has about 21.5% accuracy, which although not very
-good, is significantly better than the 2.3% accuracy obtained by
-random guessing (or even 3.4% accuracy obtained by guessing randomly
-in proportion to category sizes). Looking at the confusion matrix
-produced when there is no cross-validation, it is fairly clear that
-the classifier is overfitting. This is probably a result of having too
-many features (from the HOG); probably better performance would be
-achieved with a larger dataset.
+Accuracies are as follows:
 
-The three best features are have indices 817, 242, and 800 (in that
-order). It is difficult to interpret the meaning of these features,
-however, as they are part of the HOG (histogram of oriented
-gradients).
+* RF classifier: 20.7%
+* Random guessing: 2.1%
+* Random guessing in proportion to category sizes: 3.7%
+
+The best features are:
+
+* variance of the image entropy
+* the covariance between blue and green channels
+* the covariance between red and blue channels
 
 ## Verification
 
-To run the classifier on a directory of verification images, you can
-run from the command line:
+First, you will need to train the classifier by running the code in
+the IPython notebook (as in the section above); you only need ro run
+the first four cells. This will save the classifier to a file called
+`trained_classifier.p`.
 
-`./verify.sh directory_name`
+Once you have done that, you can run the classifier on a directory of
+verification images from the command line:
+
+`./verify.sh directory_name pickled_classifier`
 
 Or, alternately from within Python:
 
 ```
 from image_classification import run_final_classifier
-run_final_classifier("directory_name")
+run_final_classifier("directory_name", "pickled_classifier")
 ```
 
 This will load the images in that directory, compute their features,
