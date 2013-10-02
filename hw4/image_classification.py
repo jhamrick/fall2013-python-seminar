@@ -7,9 +7,12 @@ from itertools import izip
 # external
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.cross_validation import KFold
 # local
 from image_processing import load_and_extract
 
@@ -46,6 +49,21 @@ def train_classifier(X, Y, save=False, rso=None):
             pickle.dump(clf, fh)
 
     return clf
+
+
+def cross_validate(X, Y, predict_func, nidx=10, rso=None):
+    indices = KFold(Y.size, n_folds=nidx, random_state=rso)
+    stats = []
+    for i, (train_idx, test_idx) in enumerate(indices):
+        Y_pred = predict_func(X[train_idx], Y[train_idx], X[test_idx], rso=rso)
+        accuracy = accuracy_score(Y[test_idx], Y_pred)
+        print "[%d / %d] Fraction correctly classified: %.3f" % (
+            i+1, nidx, accuracy)
+        sys.stdout.flush()
+        stats.append(accuracy)
+    mean = np.mean(stats)
+    sem = scipy.stats.sem(stats)
+    print "Accuracy: %.3f +/- %.3f" % (mean, sem)
 
 
 def display_confusion_matrix(Y_test, Y_pred, normalize=True):
