@@ -145,4 +145,7 @@ def run_final_classifier(directory):
 if __name__ == "__main__":
     # run the final classifier on images in a directory which should
     # be passed as an argument
+    if len(sys.argv) < 2:
+        print "No verification directory specified (should be first argument)."
+        sys.exit(1)
     run_final_classifier(sys.argv[1])
