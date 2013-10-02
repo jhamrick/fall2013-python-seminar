@@ -136,10 +136,7 @@ def get_image_categories(images):
     return categories, category_map
 
 
-if __name__ == "__main__":
-    # get the list of images
-    images = glob("./50_categories/*/*.jpg")
-
+def load_and_extract(images):
     # placeholder variable for feature array
     features = None
 
@@ -163,6 +160,16 @@ if __name__ == "__main__":
         # clear the output (the \r moves the cursor back to the
         # beginning of the line, so we can overwrite it)
         sys.stdout.write(" "*len(msg) + "\r")
+
+    return features
+
+
+if __name__ == "__main__":
+    # get the list of images
+    images = glob("./50_categories/*/*.jpg")
+
+    # compute feature matrix
+    features = load_and_extract(images)
 
     # create an integer mapping to categories
     categories, category_map = get_image_categories(images)
