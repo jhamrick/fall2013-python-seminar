@@ -17,17 +17,21 @@ by calling `np.load`).
 
 """
 
+# built-in
+import os
+import sys
+from glob import glob
+# external
 import numpy as np
 import skimage.exposure
 import skimage.feature
 import skimage.filter
+import skimage.filter.rank
 import skimage.io
-from glob import glob
-import os
-import sys
+import skimage.morphology
 
 
-def load_image(img_path, n=128):
+def load_image(img_path, n=400):
     """Load an image from file, and perform minimal processing on it to
     prepare it for feature extraction.
 
@@ -44,12 +48,11 @@ def load_image(img_path, n=128):
     img_path : string
         The path to the image
     n : int (optional)
-        The dimension to scale the image to (it will be the same for
-        both width and height)
+        The size to scale the largest dimension to
 
     Returns
     -------
-    img : numpy.ndarray with shape (n, n, 3)
+    img : numpy.ndarray
 
     """
     # load the image from file
@@ -69,19 +72,6 @@ def load_image(img_path, n=128):
     img = skimage.transform.rescale(img, scale)
     shape = img.shape[:2]
 
-    # add extra space to the other dimension so it is also size n
-    if shape == (n, n):
-        return img
-    idx = np.argmin(shape)
-    bufshape = list(img.shape)
-    bufshape[idx] = n - min(shape)
-    buffer = np.ones(bufshape)
-    b0, b1 = np.array_split(buffer, 2, axis=idx)
-    parts = [b0, img]
-    if b1.size > 1:
-        parts.append(b1)
-    img = np.concatenate(parts, axis=idx)
-
     return img
 
 
@@ -91,7 +81,7 @@ def extract_features(img):
 
         1) Mean of R, G, and B channels
         2) Covariance between R, G, and B channels
-        3) Histogram of oriented gradients
+        3) Summary statistics of image entropy
 
     Parameters
     ----------
@@ -108,17 +98,22 @@ def extract_features(img):
 
     # mean of each channel
     mean = np.mean(RGB, axis=1)
+    # median of each channel
+    median = np.median(RGB, axis=1)
     # covariance between channels
     cov = np.cov(RGB).ravel()
-    # histogram of oriented gradients
-    hog = skimage.feature.hog(
-        img.mean(axis=-1),
-        orientations=4,
-        pixels_per_cell=(8, 8),
-        cells_per_block=(1, 1))
+    # (normalized) entropy of the grayscale image
+    entropy = skimage.filter.rank.entropy(
+        np.mean(img, axis=-1).astype('uint16'),
+        skimage.morphology.disk(5))
+    entropy = entropy / float(img.size)
+    entropy_sum = np.sum(entropy)
+    entropy_mean = np.mean(entropy)
+    entropy_var = np.var(entropy)
 
     # concatenate all the features together
-    feature_vec = np.concatenate([mean, cov, hog])
+    feature_vec = np.concatenate(
+        [mean, median, cov, [entropy_sum, entropy_mean, entropy_var]])
 
     return feature_vec
 
