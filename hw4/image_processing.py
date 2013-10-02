@@ -1,3 +1,22 @@
+"""Image processing and feature extraction
+
+To compute features for training, run:
+
+`python image_processing.py`.
+
+This script assumes there is a directory called `50_categories`, which
+contains subdirectories named by category, and then within each
+subdirectory the actual images.
+
+Running this script from the command line will load the images,
+perform some basic preprocessing (equalizing, scaling, etc.), and
+compute features. It will then save the feature array to a file called
+`image_dataset.npy`, and the categories to a file called
+`image_categories.npy` (these are both numpy files, and can be loaded
+by calling `np.load`).
+
+"""
+
 import numpy as np
 import skimage.exposure
 import skimage.feature

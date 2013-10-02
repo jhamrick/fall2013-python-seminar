@@ -1,3 +1,23 @@
+"""Image classification and verification
+
+To run the classifier on a directory of verification images, you can
+run from the command line:
+
+`./verify.sh directory_name`
+
+Or, alternately from within Python:
+
+```
+from image_classification import run_final_classifier
+run_final_classifier("directory_name")
+```
+
+This will load the images in that directory, compute their features,
+and attempt to classify them. The results will be printed to standard
+out as well as being saved to a text file called `results.txt`.
+
+"""
+
 # built-in
 import os
 import pickle
