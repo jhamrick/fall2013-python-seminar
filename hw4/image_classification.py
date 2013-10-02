@@ -1,14 +1,16 @@
+# built-in
+import os
+import pickle
+import sys
+from glob import glob
+from itertools import izip
+# external
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
-import pickle
-from glob import glob
-import sys
-import os
-from itertools import izip
-
+# local
 from image_processing import load_and_extract
 
 
@@ -46,14 +48,30 @@ def train_classifier(X, Y, save=False, rso=None):
     return clf
 
 
-def display_confusion_matrix(Y_test, Y_pred, categories):
+def display_confusion_matrix(Y_test, Y_pred, normalize=True):
+    """Compute and display a confusion matrix for prediction accuracy.
+
+    Parameters
+    ----------
+    Y_test : np.ndarray
+        True (integer) category values
+    Y_pred : np.ndarray
+        Predicted (integer) category values
+    normalize : bool (optional)
+        Whether to normalize the confusion matrix to indicate
+        proportions
+
+    """
+
+    categories = np.load("image_categories.npy")
     # compute confusion matrix
     confmat = confusion_matrix(Y_test, Y_pred)
-    confmat_norm = confmat / confmat.sum(axis=1)[:, None].astype('f8')
+    if normalize:
+        confmat = confmat / confmat.sum(axis=1)[:, None].astype('f8')
 
     # plot the confusion matrix to visualize the accuracy
     fig, ax = plt.subplots()
-    ax.matshow(confmat_norm, cmap='gray')
+    ax.matshow(confmat, cmap='gray')
 
     ax.set_xticks(xrange(len(categories)))
     ax.set_xticklabels(categories, rotation=90, fontsize=7)
@@ -67,6 +85,29 @@ def display_confusion_matrix(Y_test, Y_pred, categories):
 
 
 def run_final_classifier(directory):
+    """Run the classifier on a directory of verification images. This
+    function saves a file to disk called 'results.txt', which is
+    formatted like so:
+
+    filename        predicted_class
+    ------------------------------
+    bat_0001.jpg    cormorant
+    bat_0002.jpg    conch
+    bat_0003.jpg    raccoon
+    bat_0004.jpg    blimp
+    bat_0005.jpg    blimp
+    ...
+
+    This function expects the classifier and list of categories to
+    already exist, in files named 'image_classifier.pkl' and
+    'image_categories.npy', respectively.
+
+    Parameters
+    ----------
+    directory : str
+        Name of the directory containing verification images
+
+    """
 
     # get the list of images
     images = glob("%s/*.jpg" % directory)
@@ -102,4 +143,6 @@ def run_final_classifier(directory):
 
 
 if __name__ == "__main__":
+    # run the final classifier on images in a directory which should
+    # be passed as an argument
     run_final_classifier(sys.argv[1])
