@@ -8,7 +8,6 @@ from itertools import izip
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
@@ -17,29 +16,26 @@ from sklearn.cross_validation import KFold
 from image_processing import load_and_extract
 
 
-def split_data(dataset, ftrain=0.9, rso=None):
-    data = dataset.copy()
-    if rso is None:
-        np.random.shuffle(data)
-    else:
-        rso.shuffle(data)
-
-    # split the dataset into input/output and testing/training
-    ntrain = int(len(dataset) * ftrain)
-
-    X = preprocessing.scale(data[:, :-1])
-    X_train = X[:ntrain]
-    X_test = X[ntrain:]
-
-    Y = data[:, -1]
-    Y_train = Y[:ntrain]
-    Y_test = Y[ntrain:]
-
-    return X_train, X_test, Y_train, Y_test
-
-
 def train_classifier(X, Y, save=False, rso=None):
-    # train a random forest classifier on the data
+    """Train a random forest classifier on the data.
+
+    Parameters
+    ----------
+    X : (N, M) numpy.ndarray
+        Feature array, where N is the number of data points and M is
+        the number of features.
+    Y : (N,) numpy.ndarray
+        Observation vectory, where N is the number of observations.
+    save : bool (optional)
+        Whether to save (pickle) the classifier to disk
+    rso : numpy.random.RandomState (optional)
+        Random state object
+
+    Returns
+    -------
+    clf : sklear.ensemble.RandomForestClassifier
+
+    """
     clf = RandomForestClassifier(random_state=rso)
     clf.fit(X, Y)
 
@@ -52,6 +48,27 @@ def train_classifier(X, Y, save=False, rso=None):
 
 
 def cross_validate(X, Y, predict_func, nidx=10, rso=None):
+    """Cross validate a classifier using k-fold cross validation, and
+    print out the accuracy for each fold and then the mean and
+    standard error across folds.
+
+    Parameters
+    ----------
+    X : (N, M) numpy.ndarray
+        Feature array, where N is the number of data points and M is
+        the number of features.
+    Y : (N,) numpy.ndarray
+        Observation vectory, where N is the number of observations.
+    predict_func : function
+        The prediction function, which should have the following call
+        signature:
+            predict_funct(X_train, Y_train, X_test, rso=None)
+    nidx : int (optional)
+        The number of folds to use
+    rso : numpy.random.RandomState (optional)
+        Random state object
+
+    """
     indices = KFold(Y.size, n_folds=nidx, random_state=rso)
     stats = []
     for i, (train_idx, test_idx) in enumerate(indices):
