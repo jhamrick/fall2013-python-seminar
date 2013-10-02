@@ -1,15 +1,15 @@
-"""Image classification and verification
+"""Image classification and verification module
 
 To run the classifier on a directory of verification images, you can
 run from the command line:
 
-`./verify.sh directory_name`
+`./verify.sh directory_name pickled_classifier`
 
 Or, alternately from within Python:
 
 ```
 from image_classification import run_final_classifier
-run_final_classifier("directory_name")
+run_final_classifier("directory_name", "pickled_classifier")
 ```
 
 This will load the images in that directory, compute their features,
@@ -22,6 +22,7 @@ out as well as being saved to a text file called `results.txt`.
 import os
 import pickle
 import sys
+import warnings
 from glob import glob
 from itertools import izip
 # external
@@ -34,6 +35,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import KFold
 # local
 from image_processing import load_and_extract
+
+# turn off warnings
+warnings.filterwarnings('ignore')
 
 
 def train_classifier(X, Y, save=False, rso=None):
@@ -56,12 +60,16 @@ def train_classifier(X, Y, save=False, rso=None):
     clf : sklear.ensemble.RandomForestClassifier
 
     """
-    clf = RandomForestClassifier(random_state=rso)
+    clf = RandomForestClassifier(
+        n_estimators=50,
+        n_jobs=-1,
+        compute_importances=True,
+        random_state=rso)
     clf.fit(X, Y)
 
     # optionally save the pickled classifier to disk
     if save:
-        with open("image_classifier.pkl", "w") as fh:
+        with open("trained_classifier.p", "w") as fh:
             pickle.dump(clf, fh)
 
     return clf
@@ -139,10 +147,10 @@ def display_confusion_matrix(Y_test, Y_pred, normalize=True):
     fig.set_figheight(6)
 
 
-def run_final_classifier(directory):
-    """Run the classifier on a directory of verification images. This
-    function saves a file to disk called 'results.txt', which is
-    formatted like so:
+def run_final_classifier(path, forest):
+    """Run a random forest classifier on a directory of verification
+    images. This function saves a file to disk called 'results.txt',
+    which is formatted like so:
 
     filename        predicted_class
     ------------------------------
@@ -153,19 +161,20 @@ def run_final_classifier(directory):
     bat_0005.jpg    blimp
     ...
 
-    This function expects the classifier and list of categories to
-    already exist, in files named 'image_classifier.pkl' and
-    'image_categories.npy', respectively.
+    This function expects the list of categories to already exist in a
+    file 'image_categories.npy'.
 
     Parameters
     ----------
-    directory : str
+    path : str
         Name of the directory containing verification images
+    forest : str
+        Name of the pickled random forest classifier file
 
     """
 
     # get the list of images
-    images = glob("%s/*.jpg" % directory)
+    images = glob("%s/*.jpg" % path)
     # get the list of categories
     categories = np.load("./image_categories.npy")
 
@@ -173,7 +182,7 @@ def run_final_classifier(directory):
     features = load_and_extract(images)
 
     # load the classifier
-    with open("./image_classifier.pkl", "r") as fh:
+    with open(forest, "r") as fh:
         clf = pickle.load(fh)
 
     # make predictions
@@ -198,9 +207,8 @@ def run_final_classifier(directory):
 
 
 if __name__ == "__main__":
-    # run the final classifier on images in a directory which should
-    # be passed as an argument
-    if len(sys.argv) < 2:
-        print "No verification directory specified (should be first argument)."
+    # run a given classifier on images in a given directory
+    if len(sys.argv) < 3:
+        print "Invalid number of arguments (expected 'path' and 'forest')."
         sys.exit(1)
-    run_final_classifier(sys.argv[1])
+    run_final_classifier(sys.argv[1], sys.argv[2])
