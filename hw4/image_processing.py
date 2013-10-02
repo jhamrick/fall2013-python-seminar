@@ -8,7 +8,7 @@ import os
 import sys
 
 
-def load_image(img_path, n=250):
+def load_image(img_path, n=128):
     """Load an image from file, and perform minimal processing on it to
     prepare it for feature extraction.
 
@@ -24,7 +24,7 @@ def load_image(img_path, n=250):
     ----------
     img_path : string
         The path to the image
-    n : int (default=250)
+    n : int (optional)
         The dimension to scale the image to (it will be the same for
         both width and height)
 
@@ -92,7 +92,11 @@ def extract_features(img):
     # covariance between channels
     cov = np.cov(RGB).ravel()
     # histogram of oriented gradients
-    hog = skimage.feature.hog(img.mean(axis=-1))
+    hog = skimage.feature.hog(
+        img.mean(axis=-1),
+        orientations=4,
+        pixels_per_cell=(8, 8),
+        cells_per_block=(1, 1))
 
     # concatenate all the features together
     feature_vec = np.concatenate([mean, cov, hog])
@@ -151,7 +155,9 @@ if __name__ == "__main__":
         img = load_image(image_path)
         img_features = extract_features(img)
         if i == 0:
-            features = np.empty((len(images), img_features.size))
+            features = np.empty((len(images), img_features.size), dtype='f4')
+            sys.stdout.write(" "*len(msg) + "\r")
+            print "Feature array has shape %s" % str(features.shape)
         features[i] = img_features
 
         # clear the output (the \r moves the cursor back to the
