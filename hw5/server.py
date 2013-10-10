@@ -1,64 +1,106 @@
+import os
+
+from PIL import Image
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from xmlimage import encode, decode
-from PIL import Image
-import os
 
 
 def serializable(func):
+    """Helper decorator which encodes the input image as a numpy array,
+    passes the encoded image to the function, and decodes the output
+    back to a serialized format.
+
+    """
+
     def code_image(self, data):
-        image = encode(data)
+        image = decode(data)
         new_image = func(self, image)
-        return decode(new_image)
+        return encode(new_image)
+
+    # ensure that the decorated function has the same name and
+    # docstring as the original function
     code_image.__doc__ = func.__doc__
     code_image.__name__ = func.__name__
     return code_image
 
 
 def save_images(func):
+    """Helper decorator which saves the input and output images of a
+    function.
+
+    """
+
+    # make the image directory if it does not exist
+    if not os.path.exists("server_images"):
+        os.makedirs("server_images")
+
     def save(self, image):
-        name = func.__name__
+        # call the function
         new_image = func(self, image)
-        if not os.path.exists("server_images"):
-            os.makedirs("server_images")
+        # get the name of the function
+        name = func.__name__
+        # save the input and output images to disk
         Image.fromarray(image).save(
             "server_images/%s_in.jpg" % name)
         Image.fromarray(new_image).save(
             "server_images/%s_out.jpg" % name)
         return new_image
+
+    # ensure that the decorated function has the same name and
+    # docstring as the original function
     save.__doc__ = func.__doc__
     save.__name__ = func.__name__
     return save
 
 
 class ImageManipulations(object):
+    """A collection of lossless image manipulation methods. These include:
+
+        * invert
+        * flip_vertical
+        * flip_horizontal
+        * rotate_counterclockwise
+        * rotate_clockwise
+
+    """
 
     @serializable
     @save_images
     def invert(self, image):
+        """Invert the colors of an image."""
         return 255 - image
 
     @serializable
     @save_images
     def flip_vertical(self, image):
+        """Flip an image vertically (i.e., across the x-axis)."""
         return image[::-1]
 
     @serializable
     @save_images
     def flip_horizontal(self, image):
+        """Flip an image horizontally (i.e., across the y-axis)."""
         return image[:, ::-1]
 
     @serializable
     @save_images
     def rotate_counterclockwise(self, image):
+        """Rotate an image 90 degrees counterclockwise."""
         return image.swapaxes(0, 1)[::-1]
 
     @serializable
     @save_images
     def rotate_clockwise(self, image):
+        """Rotate an image 90 degrees clockwise."""
         return image.swapaxes(0, 1)[:, ::-1]
 
 
 class ImageManipulationServer(SimpleXMLRPCServer):
+    """A simple subclass of SimpleXMLRPCServer that registers the
+    appropriate image manipulation functions (see the
+    ImageManipulations class).
+
+    """
 
     def __init__(self, host="127.0.0.1", port=5021):
         SimpleXMLRPCServer.__init__(self, (host, port), allow_none=True)
@@ -71,6 +113,7 @@ class ImageManipulationServer(SimpleXMLRPCServer):
 
 
 if __name__ == "__main__":
-    # TODO: do some argument parsing for the host and port
+    # instantiate the server
     server = ImageManipulationServer()
+    # start listening for requests
     server.serve_forever()
