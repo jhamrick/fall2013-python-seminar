@@ -33,6 +33,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import KFold
+from sklearn import preprocessing
 # local
 from image_processing import load_and_extract
 
@@ -174,19 +175,24 @@ def run_final_classifier(path, forest):
     """
 
     # get the list of images
-    images = glob("%s/*.jpg" % path)
+    images = glob("%s/*/*.jpg" % path)
     # get the list of categories
-    categories = np.load("./image_categories.npy")
+    categories = list(np.load("./image_categories.npy"))
 
     # compute feature matrix
-    features = load_and_extract(images)
+    X = preprocessing.scale(load_and_extract(images))
 
     # load the classifier
     with open(forest, "r") as fh:
         clf = pickle.load(fh)
 
     # make predictions
-    Y_pred = clf.predict(features)
+    Y_pred = clf.predict(X).astype('i4')
+
+    # compute accuracy
+    Y = np.array([categories.index(
+        os.path.split(os.path.split(c)[0])[1]) for c in images])
+    rfor_accuracy_score = accuracy_score(Y, Y_pred)
 
     # save the results to file
     results_file = "./results.txt"
@@ -195,8 +201,10 @@ def run_final_classifier(path, forest):
             sys.stdout.write(msg)
             fh.write(msg)
 
+        write("Predicted image classes for JESSICA HAMRICK's classifier\n")
+        write("Accuracy score: %s\n\n" % rfor_accuracy_score)
         write("filename\tpredicted_class\n")
-        write("-"*30 + "\n")
+        write("-----------------------------------------\n")
 
         for image, pred in izip(images, Y_pred):
             filename = os.path.split(image)[1]
@@ -204,6 +212,8 @@ def run_final_classifier(path, forest):
             write(line)
 
     print "Results saved to '%s'." % results_file
+
+    return X, Y, Y_pred
 
 
 if __name__ == "__main__":
