@@ -1,3 +1,10 @@
 .DS_Store
 *.tgz
 *.tar.gz
+hw4/50_categories
+hw4/validation_images
+hw4/trained_classifier.p
+hw5/client_images
+hw5/server_images
+hw5/sound_files
+.ipynb_checkpoints
