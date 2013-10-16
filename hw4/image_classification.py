@@ -213,7 +213,10 @@ def run_final_classifier(path, forest):
 
     print "Results saved to '%s'." % results_file
 
-    return X, Y, Y_pred
+    confmat = confusion_matrix(Y, Y_pred)
+    plt.imshow(confmat, interpolation="nearest", origin="upper")
+    plt.savefig("confusion_matrix.pdf")
+    print "Confusion matrix saved to 'confusion_matrix.pdf'."
 
 
 if __name__ == "__main__":
