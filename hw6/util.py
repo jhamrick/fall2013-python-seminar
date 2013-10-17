@@ -1,6 +1,8 @@
 import os
 import urllib
 import pandas as pd
+import numpy as np
+from itertools import product
 
 
 def download_weather(code, year, month):
@@ -30,7 +32,9 @@ def load_weather(filename):
         'PST': 'timezone',
         'PDT': 'timezone',
         'EST': 'timezone',
-        'EDT': 'timezone'
+        'EDT': 'timezone',
+        'CST': 'timezone',
+        'CDT': 'timezone',
     }, inplace=True)
 
     cols = [
@@ -51,3 +55,25 @@ def load_weather(filename):
         raise
 
     return ret
+
+
+def correlate(df):
+    offsets = [1, 3, 7]
+    corrs = []
+
+    it = product(enumerate(offsets), enumerate(df), enumerate(df))
+    for (k, offset), (i, col1), (j, col2) in it:
+        c1 = df[col1][:-offset]
+        c2 = df[col2][offset:]
+        corrs.append({
+            'offset': offset,
+            'city1': col1,
+            'city2': col2,
+            'corr': np.corrcoef(c1, c2)[1, 0]
+        })
+
+    return (pd.DataFrame
+            .from_dict(corrs)
+            .drop_duplicates()
+            .set_index(['city1', 'city2', 'offset'])
+            .sortlevel())
