@@ -11,9 +11,9 @@ def download_weather(code, year, month):
     if os.path.exists(filename):
         return filename
 
-    url_fmt = ("http://www.wunderground.com/history/airport/KSFO/"
+    url_fmt = ("http://www.wunderground.com/history/airport/%s/"
                "%d/%d/1/MonthlyHistory.html?format=1")
-    url = url_fmt % (year, month)
+    url = url_fmt % (code, year, month)
     raw_data = urllib.urlopen(url).read()
 
     with open(filename, "w") as fh:
@@ -25,11 +25,17 @@ def download_weather(code, year, month):
 def load_weather(filename):
     data = pd.DataFrame.from_csv(filename, parse_dates=False).reset_index()
     data.columns = [x.strip() for x in data.columns]
-    data['ICAO'] = filename.split("-")[0]
+    data['ICAO'] = os.path.split(filename)[1].split("-")[0]
+    data.rename(columns={
+        'PST': 'timezone',
+        'PDT': 'timezone',
+        'EST': 'timezone',
+        'EDT': 'timezone'
+    }, inplace=True)
 
     cols = [
         'ICAO',
-        'PST' if 'PST' in data else 'PDT',
+        'timezone',
         'Min TemperatureF',
         'Max TemperatureF',
         'Min Humidity',
@@ -38,4 +44,10 @@ def load_weather(filename):
         'CloudCover'
     ]
 
-    return data[cols]
+    try:
+        ret = data[cols]
+    except:
+        print data
+        raise
+
+    return ret
