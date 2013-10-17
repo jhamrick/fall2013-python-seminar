@@ -8,3 +8,5 @@ hw5/client_images
 hw5/server_images
 hw5/sound_files
 .ipynb_checkpoints
+hw6/weather_data
+hw6/airports.db
