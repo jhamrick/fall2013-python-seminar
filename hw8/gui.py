@@ -39,6 +39,7 @@ class ImageDisplay(tr.HasTraits):
 
 class Container(tr.HasTraits):
     tags = tr.Str
+    run = tr.Button("Run query")
     url = tr.Str
     display = tr.Instance(ImageDisplay)
 
@@ -53,6 +54,13 @@ class Container(tr.HasTraits):
     brighten = tr.Button
     darken = tr.Button
 
+    def _run_fired(self):
+        # split the string into individual terms
+        search_terms = [x.strip() for x in self.tags.split(",")]
+        # make sure none of the terms are empty
+        search_terms = [x for x in search_terms if x != ""]
+        print "search terms: %s" % search_terms
+
     view = ui.View(
         ui.Group(
 
@@ -61,6 +69,11 @@ class Container(tr.HasTraits):
                     'tags',
                     show_label=True,
                     label="Query string"),
+                ui.Item(
+                    'run',
+                    show_label=False),
+
+                orientation='horizontal',
                 label="Input",
                 show_border=True,
                 springy=True),
