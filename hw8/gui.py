@@ -34,6 +34,8 @@ except:
 
 import urllib2
 import simplejson
+import tempfile
+from PIL import Image
 
 
 class ImageDisplay(tr.HasTraits):
@@ -59,14 +61,30 @@ class Container(tr.HasTraits):
 
     def _run_fired(self):
         # Set up the image search request
+        quoted = urllib2.quote(self.tags)
         url = ('https://ajax.googleapis.com/ajax/services/search/images?' +
-               'v=1.0&q=%s' % self.tags)
+               'v=1.0&q=%s' % quoted)
         request = urllib2.Request(url, None)
+
         # Load the response and process the JSON string
-        response = urllib2.urlopen(request)
-        results = simplejson.load(response)
+        handler = urllib2.urlopen(request)
+        results = simplejson.load(handler)
+        handler.close()
+
         # Extract the URL for the first image
         self.url = results['responseData']['results'][0]['url']
+
+        # Download the image
+        image_request = urllib2.Request(self.url, None)
+        handler = urllib2.urlopen(image_request)
+        imagestr = handler.read()
+
+        # Save it to a temporary file and load it as a PIL image
+        with tempfile.NamedTemporaryFile() as fh:
+            fh.write(imagestr)
+            image = Image.open(fh.name)
+
+        image.show()
 
     view = ui.View(
         ui.Group(
