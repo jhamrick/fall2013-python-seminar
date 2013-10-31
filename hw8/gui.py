@@ -36,17 +36,15 @@ import urllib2
 import simplejson
 import tempfile
 from PIL import Image
-
-
-class ImageDisplay(tr.HasTraits):
-    pass
+from mpl_figure_editor import MPLFigureEditor
+from matplotlib.figure import Figure
 
 
 class Container(tr.HasTraits):
     tags = tr.Str
     run = tr.Button("Run query")
     url = tr.Str
-    display = tr.Instance(ImageDisplay)
+    figure = tr.Instance(Figure, ())
 
     refresh = tr.Button
     blur = tr.Button
@@ -58,6 +56,12 @@ class Container(tr.HasTraits):
     decolor = tr.Button
     brighten = tr.Button
     darken = tr.Button
+
+    def _figure_default(self):
+        # Add a default figure and axes
+        figure = Figure()
+        figure.add_subplot(111)
+        return figure
 
     def _run_fired(self):
         # Set up the image search request
@@ -84,7 +88,10 @@ class Container(tr.HasTraits):
             fh.write(imagestr)
             image = Image.open(fh.name)
 
-        image.show()
+        # Update the matplotlib axes with the new image
+        self.figure.axes[0].images = []
+        self.figure.axes[0].imshow(image)
+        self.figure.canvas.draw()
 
     view = ui.View(
         ui.Group(
@@ -114,12 +121,14 @@ class Container(tr.HasTraits):
 
             ui.Group(
                 ui.Item(
-                    'display',
+                    'figure',
+                    editor=MPLFigureEditor(),
                     style='custom',
-                    show_label=False),
+                    show_label=False,
+                    width=500,
+                    height=500),
                 label="Image Display",
-                show_border=True,
-                springy=True),
+                show_border=True),
 
             ui.Group(
                 ui.Item('refresh'),
@@ -146,6 +155,5 @@ class Container(tr.HasTraits):
         title="Image Search",
     )
 
-container = Container(
-    display=ImageDisplay())
+container = Container()
 container.configure_traits()
