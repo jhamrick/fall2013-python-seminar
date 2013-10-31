@@ -32,6 +32,9 @@ except:
     import traits.api as tr
     import traitsui.api as ui
 
+import urllib2
+import simplejson
+
 
 class ImageDisplay(tr.HasTraits):
     pass
@@ -55,11 +58,15 @@ class Container(tr.HasTraits):
     darken = tr.Button
 
     def _run_fired(self):
-        # split the string into individual terms
-        search_terms = [x.strip() for x in self.tags.split(",")]
-        # make sure none of the terms are empty
-        search_terms = [x for x in search_terms if x != ""]
-        print "search terms: %s" % search_terms
+        # Set up the image search request
+        url = ('https://ajax.googleapis.com/ajax/services/search/images?' +
+               'v=1.0&q=%s' % self.tags)
+        request = urllib2.Request(url, None)
+        # Load the response and process the JSON string
+        response = urllib2.urlopen(request)
+        results = simplejson.load(response)
+        # Extract the URL for the first image
+        self.url = results['responseData']['results'][0]['url']
 
     view = ui.View(
         ui.Group(
