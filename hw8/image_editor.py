@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """Homework 8: GUIs
 
 Author: Jessica Hamrick <jhamrick@berkeley.edu>
