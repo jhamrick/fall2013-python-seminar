@@ -35,35 +35,68 @@ except:
 import urllib2
 import simplejson
 import tempfile
-from PIL import Image
+from PIL import Image, ImageEnhance
 from mpl_figure_editor import MPLFigureEditor
 from matplotlib.figure import Figure
 
 
-class Container(tr.HasTraits):
+class ImageEditor(tr.HasTraits):
+
+    # the search query
     tags = tr.Str
     run = tr.Button("Run query")
+
+    # the retrieved url
     url = tr.Str
+
+    # the retrieved image
     figure = tr.Instance(Figure, ())
 
-    refresh = tr.Button
+    # image manipulations
+    reset = tr.Button
     blur = tr.Button
     sharpen = tr.Button
-    smooth = tr.Button
-    edge = tr.Button
-    contrast = tr.Button
-    color = tr.Button
     decolor = tr.Button
-    brighten = tr.Button
+    color = tr.Button
     darken = tr.Button
+    brighten = tr.Button
+
+    def __init__(self):
+        super(ImageEditor, self).__init__()
+        self._orig_image = None
+        self._image = None
+        self._factor = 0.1
+
+    def _show(self):
+        """Update the matplotlib axes with the image stored in `self._image`.
+
+        """
+        if self._image:
+            self.figure.axes[0].images = []
+            self.figure.axes[0].imshow(self._image)
+            self.figure.canvas.draw()
 
     def _figure_default(self):
+        """Returns an empty figure with a single subplot as the default
+        matplotlib editor region.
+
+        """
         # Add a default figure and axes
         figure = Figure()
         figure.add_subplot(111)
         return figure
 
     def _run_fired(self):
+        """When the 'Run Query' button is pressed, perform an image search for
+        the given query. Download the image at the first URL, and
+        display both the image and the URL.
+
+        """
+
+        # don't do anything if there's an empty string passed
+        if self.tags == "":
+            return
+
         # Set up the image search request
         quoted = urllib2.quote(self.tags)
         url = ('https://ajax.googleapis.com/ajax/services/search/images?' +
@@ -75,27 +108,105 @@ class Container(tr.HasTraits):
         results = simplejson.load(handler)
         handler.close()
 
-        # Extract the URL for the first image
-        self.url = results['responseData']['results'][0]['url']
+        # Extract the URL for the first image (that we can download)
+        for result in results['responseData']['results']:
+            self.url = result['url']
 
-        # Download the image
-        image_request = urllib2.Request(self.url, None)
-        handler = urllib2.urlopen(image_request)
-        imagestr = handler.read()
+            # Download the image
+            request = urllib2.Request(self.url, None)
+            try:
+                handler = urllib2.urlopen(request)
+            except urllib2.HTTPError:
+                # we couldn't download the image for some reason, so
+                # we'll try the next one
+                pass
+            else:
+                break
+
+        if handler:
+            imagestr = handler.read()
+        else:
+            self.url = "Sorry, there was an error processing your query."
 
         # Save it to a temporary file and load it as a PIL image
         with tempfile.NamedTemporaryFile() as fh:
             fh.write(imagestr)
-            image = Image.open(fh.name)
+            self._orig_image = Image.open(fh.name)
 
-        # Update the matplotlib axes with the new image
-        self.figure.axes[0].images = []
-        self.figure.axes[0].imshow(image)
-        self.figure.canvas.draw()
+        # Copy the image to our working buffer
+        self._image = self._orig_image.copy()
 
+        # Show the image
+        self._show()
+
+    def _reset_fired(self):
+        """Reset the displayed image to the original version that was
+        downloaded.
+
+        """
+        if self._orig_image:
+            self._image = self._orig_image.copy()
+            self._show()
+
+    def _blur_fired(self):
+        """Blur the displayed image."""
+        if self._image:
+            enhancer = ImageEnhance.Sharpness(self._image)
+            factor = 1. - self._factor
+            print "Blur by factor of %.2f" % factor
+            self._image = enhancer.enhance(factor)
+            self._show()
+
+    def _sharpen_fired(self):
+        """Sharpen the displayed image."""
+        if self._image:
+            enhancer = ImageEnhance.Sharpness(self._image)
+            factor = 1. + self._factor
+            print "Sharpen by factor of %.2f" % factor
+            self._image = enhancer.enhance(factor)
+            self._show()
+
+    def _decolor_fired(self):
+        """Desaturate the displayed image."""
+        if self._image:
+            enhancer = ImageEnhance.Color(self._image)
+            factor = 1. - self._factor
+            print "Decolor by factor of %.2f" % factor
+            self._image = enhancer.enhance(factor)
+            self._show()
+
+    def _color_fired(self):
+        """Increase saturation of the displayed image."""
+        if self._image:
+            enhancer = ImageEnhance.Color(self._image)
+            factor = 1. + self._factor
+            print "Color by factor of %.2f" % factor
+            self._image = enhancer.enhance(factor)
+            self._show()
+
+    def _darken_fired(self):
+        """Darken the displayed image."""
+        if self._image:
+            enhancer = ImageEnhance.Brightness(self._image)
+            factor = 1. - self._factor
+            print "Darken by factor of %.2f" % factor
+            self._image = enhancer.enhance(factor)
+            self._show()
+
+    def _brighten_fired(self):
+        """Brighten the displayed image."""
+        if self._image:
+            enhancer = ImageEnhance.Brightness(self._image)
+            factor = 1. + self._factor
+            print "Brighten by factor of %.2f" % factor
+            self._image = enhancer.enhance(factor)
+            self._show()
+
+    # specify the way the various traits objects should be displayed
     view = ui.View(
         ui.Group(
 
+            # the search query
             ui.Group(
                 ui.Item(
                     'tags',
@@ -110,6 +221,7 @@ class Container(tr.HasTraits):
                 show_border=True,
                 springy=True),
 
+            # the image url
             ui.Group(
                 ui.Item(
                     'url',
@@ -119,6 +231,7 @@ class Container(tr.HasTraits):
                 show_border=True,
                 springy=True),
 
+            # the matplotlib figure for displaying the image
             ui.Group(
                 ui.Item(
                     'figure',
@@ -130,17 +243,15 @@ class Container(tr.HasTraits):
                 label="Image Display",
                 show_border=True),
 
+            # buttons for image manipulations
             ui.Group(
-                ui.Item('refresh'),
+                ui.Item('reset'),
                 ui.Item('blur'),
                 ui.Item('sharpen'),
-                ui.Item('smooth'),
-                ui.Item('edge'),
-                ui.Item('contrast'),
-                ui.Item('color'),
                 ui.Item('decolor'),
-                ui.Item('brighten'),
+                ui.Item('color'),
                 ui.Item('darken'),
+                ui.Item('brighten'),
 
                 orientation='horizontal',
                 show_labels=False,
@@ -155,5 +266,7 @@ class Container(tr.HasTraits):
         title="Image Search",
     )
 
-container = Container()
-container.configure_traits()
+if __name__ == "__main__":
+    # create the editor and display it
+    editor = ImageEditor()
+    editor.configure_traits()
